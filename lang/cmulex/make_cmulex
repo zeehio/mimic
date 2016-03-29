@@ -45,6 +45,11 @@ then
 fi
 export MIMICDIR
 
+TRAIN_LTS_RULES="${MIMICDIR}/lang/train_models/train_lts.py"
+TEST_LTS_RULES="${MIMICDIR}/lang/train_models/test_lts.py"
+BUILD_LEX="${MIMICDIR}/lang/train_models/prune_lexicon.py"
+
+
 if [ "x$FESTSUITE" = "x" ];
 then
   FESTSUITE="${MIMICDIR}/_festsuite"
@@ -141,12 +146,11 @@ fi
 if [ "$1" = "lts" ]
 then
    echo "lts started at" `date -R`
-   rm -f festival/lib/dicts/cmu/cmu_lts_rules.scm
-   echo "lts/dump-entries started at" `date -R`
-   python make_cmulex_helper.py --remove-short || exit 1
   (cd festival/lib/dicts/cmu;
-   echo "lts/cummulate started at" `date -R`
-   ./build_lts cummulate || exit 1
+   rm -f cmu_lts_rules.scm
+   echo "lts/dump-entries and cummulate started at" `date -R`
+   python "${TRAIN_LTS_RULES}" --lexicon "cmudict-0.4.out" \
+       --output "lts_scratch/lex_entries.out" --lower --minlength 4 || exit 1
    echo "lts/align started at" `date -R`
    ./build_lts align || exit 1
    echo "lts/build started at" `date -R`
@@ -154,9 +158,7 @@ then
    echo "lts/merge started at" `date -R`
    ./build_lts merge || exit 1
    echo "lts/test started at" `date -R`
-  )
-   python make_cmulex_helper.py  --test-lts || exit 1
-  (cd festival/lib/dicts/cmu;
+   python "${TEST_LTS_RULES}"  --lts_rules "lex_lts_rules.scm" --align_file "lts_scratch/lex.align" || exit 1
    cp lex_lts_rules.scm cmu_lts_rules.scm || exit 1
    echo "lts/lts_to_rg_to_wfst started at" `date -R`
    $FESTIVAL --heap 10000000 -b $MIMICDIR/tools/make_lts_wfst.scm lts_scratch/lex_lts_rules.scm '(lts_to_rg_to_wfst lex_lts_rules "wfst/")' || exit 1
@@ -171,9 +173,10 @@ then
      # We will prune words that aren't homographs and the LTS gets correct
      # Use the lts_test.log to find the failed entries and only
      # include them in the list 
-   echo "lex/prune_lexicon started at" `date -R`
-   python make_cmulex_helper.py --prune || exit 1
    ( cd festival/lib/dicts/cmu;
+     echo "lex/prune_lexicon started at" `date -R`
+     python "${BUILD_LEX}" --lexicon "cmudict-0.4.out" \
+         --lts_rules "lex_lts_rules.scm" --output "pruned_lex.scm" || exit 1
      echo "lex/compile_pruned started at" `date -R`
      $FESTIVAL --heap 10000000 -b '(begin (load "cmulex.scm") (lex.compile "pruned_lex.scm" "pruned_lex.out"))' || exit 1
      echo "lex/lextoC started at" `date -R`

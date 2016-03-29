@@ -78,3 +78,8 @@ _festsuite
 lang/cmulex/festival
 lang/cmulex/festlex_CMU.tar.gz
 
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+

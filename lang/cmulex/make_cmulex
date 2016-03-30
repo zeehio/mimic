@@ -148,9 +148,10 @@ then
    echo "lts started at" `date -R`
   (cd festival/lib/dicts/cmu;
    rm -f cmu_lts_rules.scm
+  )
    echo "lts/dump-entries and cummulate started at" `date -R`
-   python "${TRAIN_LTS_RULES}" --lexicon "cmudict-0.4.out" \
-       --output "lts_scratch/lex_entries.out" --lower --minlength 4 || exit 1
+   python "train_cmulex.py" || exit 1
+  (cd festival/lib/dicts/cmu;
    echo "lts/align started at" `date -R`
    ./build_lts align || exit 1
    echo "lts/build started at" `date -R`

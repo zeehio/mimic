@@ -9,7 +9,7 @@ Author: Sergio Oller, 2016
 from __future__ import unicode_literals
 from __future__ import print_function
 
-from common import read_align, read_lts, process_lts, test_lts
+from .common import read_align, read_lts, process_lts, test_lts
 
 import argparse
 

@@ -11,8 +11,8 @@ from __future__ import print_function
 
 import argparse
 
-from common import (read_lexicon, read_lts, process_lts, prune_lexicon,
-                    write_lex)
+from .common import (read_lexicon, read_lts, process_lts, prune_lexicon,
+                     write_lex)
 
 
 def load_and_prune_lex(lexicon_fn, lts_rules_fn, output_pruned_lex_fn):

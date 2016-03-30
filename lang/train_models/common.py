@@ -12,8 +12,10 @@ Author: Sergio Oller, 2016
 from __future__ import unicode_literals
 from __future__ import print_function
 from codecs import open
+import os
 
-from scheme import parse
+from .scheme import parse
+from .utils import progress_bar, logger
 from collections import defaultdict
 
 
@@ -45,7 +47,10 @@ def read_lexicon(filename, is_flat=False):
            (part of speech2, phones in syllables2, phones2), ...] dictionary.
     """
     output = defaultdict(list)
+    total_bytes = os.path.getsize(filename)
+    bytes_read = 0
     for line in read_raw_lexicon(filename):
+        bytes_read += len(line)
         word = line[0]
         pos = line[1]
         syls = line[2]
@@ -55,6 +60,7 @@ def read_lexicon(filename, is_flat=False):
             flattened_syls = syls
             syls = None
         output[word].append((pos, syls, flattened_syls))
+        progress_bar(bytes_read, total_bytes)
     return output
 
 
@@ -339,3 +345,4 @@ def write_lex(pruned_lex, filename, flattened=True):
                     raise NotImplementedError("Not needed")
                 out = '( "' + word + '" ' + pos + " " + phones_out + ")"
                 print(out, file=fd)
+

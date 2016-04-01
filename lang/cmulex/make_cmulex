@@ -152,14 +152,17 @@ then
    echo "lts/dump-entries and cummulate started at" `date -R`
    python "train_cmulex.py" || exit 1
   (cd festival/lib/dicts/cmu;
-   echo "lts/align started at" `date -R`
-   ./build_lts align || exit 1
+   #echo "lts/align started at" `date -R`
+   #./build_lts align || exit 1
+   $FESTIVAL -b --heap $HEAP allowables.scm lts_scratch/lex-pl-tablesp.scm '(begin
+      (build-feat-file "lts_scratch/lex.align" "lts_scratch/lex.feats"))' |
+      tee align.log
    echo "lts/build started at" `date -R`
    ./build_lts build || exit 1
    echo "lts/merge started at" `date -R`
    ./build_lts merge || exit 1
    echo "lts/test started at" `date -R`
-   python "${TEST_LTS_RULES}"  --lts_rules "lex_lts_rules.scm" --align_file "lts_scratch/lex.align" || exit 1
+   PYTHONPATH="$MIMICDIR/lang/" python -m train_models.test_lts  --lts_rules "lex_lts_rules.scm" --align_file "lts_scratch/lex.align" || exit 1
    cp lex_lts_rules.scm cmu_lts_rules.scm || exit 1
    echo "lts/lts_to_rg_to_wfst started at" `date -R`
    $FESTIVAL --heap 10000000 -b $MIMICDIR/tools/make_lts_wfst.scm lts_scratch/lex_lts_rules.scm '(lts_to_rg_to_wfst lex_lts_rules "wfst/")' || exit 1
@@ -176,7 +179,7 @@ then
      # include them in the list 
    ( cd festival/lib/dicts/cmu;
      echo "lex/prune_lexicon started at" `date -R`
-     python "${BUILD_LEX}" --lexicon "cmudict-0.4.out" \
+     PYTHONPATH="$MIMICDIR/lang/" python -m train_models.prune_lexicon --lexicon "cmudict-0.4.out" \
          --lts_rules "lex_lts_rules.scm" --output "pruned_lex.scm" || exit 1
      echo "lex/compile_pruned started at" `date -R`
      $FESTIVAL --heap 10000000 -b '(begin (load "cmulex.scm") (lex.compile "pruned_lex.scm" "pruned_lex.out"))' || exit 1

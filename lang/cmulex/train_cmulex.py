@@ -10,7 +10,8 @@ if MIMICDIR not in sys.path:
 
 from train_models.train_lts import (load_and_filter_lex_for_lts,
                                     cummulate_pairs,
-                                    normalise_table, save_pl_table)
+                                    normalise_table, save_pl_table, align_data,
+                                    save_lex_align)
 
 ALLOWABLES = {'a': ['_epsilon_', 'aa', 'aa1', 'aa0', 'ax', 'ax1', 'ax0', 'eh',
                     'eh1', 'eh0', 'ah', 'ah1', 'ah0', 'ae', 'ae1', 'ae0', 'ey',
@@ -65,8 +66,6 @@ ALLOWABLES = {'a': ['_epsilon_', 'aa', 'aa1', 'aa0', 'ax', 'ax1', 'ax0', 'eh',
               'z': ['_epsilon_', 'z', 't-s', 'zh', 's'],
               '#': ['#']}
 
-
-
 WORK_DIR = "festival/lib/dicts/cmu/"
 LTS_SCRATCH = os.path.join(WORK_DIR, "lts_scratch")
 
@@ -80,7 +79,7 @@ lexicon_fn = os.path.join(WORK_DIR, "cmudict-0.4.out")
 lex_entries_fn = os.path.join(LTS_SCRATCH, "lex_entries.out")
 minlength = 4  # Remove short words (len<4)
 lower = True  # Lowercase words
-print("Filter lexicon removing short words and converting to lower case")
+print("Filter lexicon: Removing short words and converting to lower case")
 filtered_lex = load_and_filter_lex_for_lts(lexicon_fn, lex_entries_fn,
                                            minlength, lower)
 
@@ -89,5 +88,7 @@ pl_table = cummulate_pairs(filtered_lex, ALLOWABLES)
 pl_table_norm = normalise_table(pl_table)
 lex_pl_tablesp_fn = os.path.join(LTS_SCRATCH, "lex-pl-tablesp.scm")
 save_pl_table(pl_table_norm, lex_pl_tablesp_fn)
-
-
+print("Align letters with phones")
+(good_align, align_failed) = align_data(filtered_lex, pl_table_norm)
+lex_align_fn = os.path.join(LTS_SCRATCH, "lex.align")
+save_lex_align(good_align, lex_align_fn)

@@ -7,12 +7,12 @@ Author: Sergio Oller, 2016
 """
 from __future__ import unicode_literals
 from __future__ import print_function
-import argparse
 import copy
 from collections import defaultdict
 
 from .common import read_lexicon, write_lex
 from .utils import progress_bar, logger
+
 
 def filter_lexicon(lexicon, minlength=4, lower=True):
     logger.info("Filtering lexicon...")
@@ -177,25 +177,93 @@ def load_and_cummulate_pairs(lexicon_fn, allowables, output_fn):
     return pl_table_norm
 
 
-def align_data(lex_entries, lex_align):
-   """
-(define (aligndata file ofile)
-  (let ((fd (fopen file "r"))
-	(ofd (fopen ofile "w"))
-	(c 1)
-	(entry))
-    (while (not (equal? (set! entry (readfp fd)) (eof-val)))
-	   (set! lets (enworden (wordexplode (car entry))))
-	   (set! bp (find_best_alignment
-		     (enworden (car (cdr (cdr entry))))
-		     lets))
-	   (if (not bp)
-	       (format t "align failed: %l\n" entry)
-	       (save_info (car (cdr entry)) bp ofd))
-	   (set! c (+ 1 c)))
-    (fclose fd)
-    (fclose ofd)))
-   """
-   pass
+def score_pair(phone, letter, pl_table):
+    """
+    Give score for this particular phone letter pair.
+    """
+    try:
+        return pl_table[letter][phone]
+    except KeyError:
+        return 0
 
 
+def find_best_alignment(phones, letters, pl_table,
+                        path=None, score=0, fba=None):
+    """
+    Find all feasible alignments.
+    """
+    if path is None:
+        path = []
+    if fba is None:
+        fba = dict(path=[], score=0)
+    if letters is None or len(letters) == 0:
+        if score > fba['score']:
+            fba['score'] = score
+            fba['path'] = path[::-1]
+        return fba
+    if valid_pair('_epsilon_', letters[0], pl_table):
+        fba = find_best_alignment(phones, letters[1:], pl_table,
+                                  [('_epsilon_', letters[0])] + path,
+                                  score + score_pair('_epsilon_', letters[0], pl_table),
+                                  fba=fba)
+    if valid_pair(phones[0], letters[0], pl_table):
+        fba = find_best_alignment(phones[1:], letters[1:], pl_table,
+                                  [(phones[0], letters[0])] + path,
+                                  score + score_pair(phones[0], letters[0], pl_table),
+                                  fba=fba)
+    if len(phones) > 1 and valid_pair_e(phones[0], phones[1], letters[0], pl_table):
+        fba = find_best_alignment(phones[2:], letters[1:], pl_table,
+                                  [(phones[0] + "-" + phones[1],
+                                    letters[0])] + path,
+                                  score + score_pair(phones[0] + "-" +
+                                                     phones[1], letters[0], pl_table),
+                                  fba=fba)
+    return fba
+
+
+
+def save_info(pos, path, of):
+    """
+    Save the best path in a file
+    pos = "nil"
+    path: [('#', '#'), ('_epsilon', 'a'), ('aa1', 'a'), ... ]
+    saves:
+    ( ( a a b e r g ) nil _epsilon_ aa1 b _epsilon_ er0 g )
+    """
+    # 
+    # path[1:-1] <- drops ("#", "#")
+    # x[1]
+    letters = " ".join(x[1] for x in path[1:-1])
+    phones = " ".join(x[0] for x in path[1:-1])
+    print("( ( " + letters + " ) " + pos + " " + phones + " )", file=of)
+    return
+
+
+def align_data(lexicon, pl_table):
+    """
+    Aligns characters of each lexicon entry with their phonetic representation.
+    """
+    align_failed = []
+    align_good = []
+    num_words = len(lexicon.keys())
+    for i, (word, heteronyms) in enumerate(sorted(lexicon.items())):
+        progress_bar(i, num_words)
+        bound_word = ['#'] + list(word) + ['#']
+        for heteronym in heteronyms:
+            phones = heteronym[2]
+            bound_phones = ['#'] + phones + ['#']
+            fba = find_best_alignment(bound_phones, bound_word, pl_table)
+            best_path = fba['path']
+            if len(best_path) == []:
+                align_failed.append((word, heteronym))
+            else:
+                pos = heteronym[0]
+                align_good.append((pos, best_path))
+    return (align_good, align_failed)
+
+
+def save_lex_align(align_good, filename):
+    with open(filename, "wt") as ofd:
+        for (pos, best_path) in align_good:
+            save_info(pos, best_path, ofd)
+    return

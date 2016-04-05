@@ -11,7 +11,7 @@ if MIMICDIR not in sys.path:
 from train_models.train_lts import (load_and_filter_lex_for_lts,
                                     cummulate_pairs,
                                     normalise_table, save_pl_table, align_data,
-                                    save_lex_align)
+                                    save_lex_align, build_feat_file)
 
 ALLOWABLES = {'a': ['_epsilon_', 'aa', 'aa1', 'aa0', 'ax', 'ax1', 'ax0', 'eh',
                     'eh1', 'eh0', 'ah', 'ah1', 'ah0', 'ae', 'ae1', 'ae0', 'ey',
@@ -92,3 +92,6 @@ print("Align letters with phones")
 (good_align, align_failed) = align_data(filtered_lex, pl_table_norm)
 lex_align_fn = os.path.join(LTS_SCRATCH, "lex.align")
 save_lex_align(good_align, lex_align_fn)
+lex_feats_fn = os.path.join(LTS_SCRATCH, "lex.feats")
+print("Build feat file")
+feats = build_feat_file(good_align, lex_feats_fn)

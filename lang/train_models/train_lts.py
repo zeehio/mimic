@@ -267,3 +267,23 @@ def save_lex_align(align_good, filename):
         for (pos, best_path) in align_good:
             save_info(pos, best_path, ofd)
     return
+
+
+def build_feat_file(align, feat_file=None):
+    feats = []
+    for i, (pos, let_phone_list) in enumerate(align):
+        progress_bar(i, len(align))
+        lets = [0]*4 + [x[1] for x in let_phone_list] + [0]*4
+        phones = [x[0] for x in let_phone_list[1:-1]]
+        for i, phone in enumerate(phones):
+            j = i + 5
+            feats.append([phone]+lets[(j-4):(j+5)] + [pos])
+    if feat_file is not None:
+        write_feats(feats, feat_file)
+    return feats
+
+
+def write_feats(feats, feat_file):
+    with open(feat_file, "w") as ofd:
+        for feat in feats:
+            print(" ".join([str(x) for x in feat]), file=ofd)

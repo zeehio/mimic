@@ -149,14 +149,9 @@ then
   (cd festival/lib/dicts/cmu;
    rm -f cmu_lts_rules.scm
   )
-   echo "lts/dump-entries and cummulate started at" `date -R`
+   echo "lts/dump-entries and cummulate and align started at" `date -R`
    python "train_cmulex.py" || exit 1
   (cd festival/lib/dicts/cmu;
-   #echo "lts/align started at" `date -R`
-   #./build_lts align || exit 1
-   $FESTIVAL -b --heap $HEAP allowables.scm lts_scratch/lex-pl-tablesp.scm '(begin
-      (build-feat-file "lts_scratch/lex.align" "lts_scratch/lex.feats"))' |
-      tee align.log
    echo "lts/build started at" `date -R`
    ./build_lts build || exit 1
    echo "lts/merge started at" `date -R`

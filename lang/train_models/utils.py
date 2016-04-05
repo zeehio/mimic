@@ -4,6 +4,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 def progress_bar(item, num_items):
     prev_percent = 100*(item-1)//num_items
     percent = 100*item//num_items
@@ -17,4 +18,3 @@ def progress_bar(item, num_items):
         sys.stdout.write("[%-40s] %d%%" % ('='*(40), 100))
         sys.stdout.write('\n')
         sys.stdout.flush()
-

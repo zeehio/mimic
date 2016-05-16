@@ -1,17 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import sys
 import os
 
-MIMICDIR = os.path.realpath(os.path.join(os.path.dirname(__file__), "..", ".."))
-TRAIN_MODELS_PATH = os.path.join(MIMICDIR, "lang")
-if MIMICDIR not in sys.path:
-    sys.path.insert(1, TRAIN_MODELS_PATH)
-
-from train_models.train_lts import (load_and_filter_lex_for_lts,
+from train_models.train_lts import (read_lexicon, filter_lexicon, write_lex,
                                     cummulate_pairs,
                                     normalise_table, save_pl_table, align_data,
                                     save_lex_align, build_feat_file)
+
+from train_models.build_lts import build_lts, merge_models
+
+
+MIMICDIR = os.path.join(os.path.dirname(__file__), "..", "..")
+
 
 ALLOWABLES = {'a': ['_epsilon_', 'aa', 'aa1', 'aa0', 'ax', 'ax1', 'ax0', 'eh',
                     'eh1', 'eh0', 'ah', 'ah1', 'ah0', 'ae', 'ae1', 'ae0', 'ey',
@@ -79,15 +79,18 @@ lexicon_fn = os.path.join(WORK_DIR, "cmudict-0.4.out")
 lex_entries_fn = os.path.join(LTS_SCRATCH, "lex_entries.out")
 minlength = 4  # Remove short words (len<4)
 lower = True  # Lowercase words
+
+print("Load lexicon in festival format")
+lexicon = read_lexicon(lexicon_fn, is_flat=False)
 print("Filter lexicon: Removing short words and converting to lower case")
-filtered_lex = load_and_filter_lex_for_lts(lexicon_fn, lex_entries_fn,
-                                           minlength, lower)
+filtered_lex = filter_lexicon(lexicon, minlength=minlength, lower=lower)
+write_lex(filtered_lex, lex_entries_fn, flattened=True)
 
 print("Count probabilities of letter-phone pairs")
 pl_table = cummulate_pairs(filtered_lex, ALLOWABLES)
 pl_table_norm = normalise_table(pl_table)
 lex_pl_tablesp_fn = os.path.join(LTS_SCRATCH, "lex-pl-tablesp.scm")
-save_pl_table(pl_table_norm, lex_pl_tablesp_fn)
+save_pl_table(pl_table_norm, lex_pl_tablesp_fn)  # sort dict by value sorted(d, key=d.get)
 print("Align letters with phones")
 (good_align, align_failed) = align_data(filtered_lex, pl_table_norm)
 lex_align_fn = os.path.join(LTS_SCRATCH, "lex.align")
@@ -95,3 +98,36 @@ save_lex_align(good_align, lex_align_fn)
 lex_feats_fn = os.path.join(LTS_SCRATCH, "lex.feats")
 print("Build feat file")
 feats = build_feat_file(good_align, lex_feats_fn)
+print("Build LTS models")
+
+import numpy as np
+featsnp = np.array(feats)
+feat_names = ['Relation.LTS.down.name',
+              'p.p.p.p.name ignore',
+              'p.p.p.name',
+              'p.p.name',
+              'p.name',
+              'name',
+              'n.name',
+              'n.n.name',
+              'n.n.n.name',
+              'n.n.n.n.name ignore',
+              'pos ignore']
+feat_central = 6  # name
+
+WAGON_PATH = os.path.join(MIMICDIR, "_festsuite",
+                          "speech_tools", "bin", "wagon")
+all_letters = sorted(set(ALLOWABLES.keys()) - set("#"))
+build_lts(all_letters, featsnp, feat_names, feat_central=feat_central,
+          stop=3, scratchdir=LTS_SCRATCH, wagon_path=WAGON_PATH)
+
+# Merge not implemented
+#lts_model_raw = merge_models(all_letters, LTS_SCRATCH, "")
+#from train_models.common import process_lts
+#lts_model = process_lts(lts_model_raw)
+
+#from train_models.common import read_align, test_lts
+# FIXME: Merge models should save the final model
+#al = read_align(lex_align_fn)
+#print(test_lts(al, lts_model))
+

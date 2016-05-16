@@ -287,3 +287,4 @@ def write_feats(feats, feat_file):
     with open(feat_file, "w") as ofd:
         for feat in feats:
             print(" ".join([str(x) for x in feat]), file=ofd)
+

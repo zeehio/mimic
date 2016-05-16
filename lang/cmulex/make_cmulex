@@ -150,10 +150,8 @@ then
    rm -f cmu_lts_rules.scm
   )
    echo "lts/dump-entries and cummulate and align started at" `date -R`
-   python "train_cmulex.py" || exit 1
+   PYTHONPATH="$MIMICDIR/lang/" python "train_cmulex.py" || exit 1
   (cd festival/lib/dicts/cmu;
-   echo "lts/build started at" `date -R`
-   ./build_lts build || exit 1
    echo "lts/merge started at" `date -R`
    ./build_lts merge || exit 1
    echo "lts/test started at" `date -R`

@@ -19,6 +19,7 @@ echo "Have PCRE2? [${HAVE_PCRE2}]"
 if [ "x${HAVE_PCRE2}" = "xno" ]; then
     mkdir -p "${BUILDFROM}/build_thirdparty/pcre2" || exit 1
     cd "${BUILDFROM}/build_thirdparty/pcre2" || exit 1
+    (cd "${SCRIPTPATH}/thirdparty/pcre2" && autoreconf -fi)
     ${SCRIPTPATH}/thirdparty/pcre2/configure --disable-option-checking $@ || exit 1
     make || exit 1
     make install || exit 1

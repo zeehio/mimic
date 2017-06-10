@@ -36,13 +36,13 @@
 #include <cst_string.h>
 
 #define PCRE2_CODE_UNIT_WIDTH 8
-#include <pcre2.h> 
+#include <pcre2.h>
 
-typedef pcre2_code cst_uregex; 
+typedef pcre2_code cst_uregex;
 cst_string *cst_toupper_utf8(const cst_string *in);
 cst_string *cst_tolower_utf8(const cst_string *in);
 cst_uregex *new_cst_uregex(cst_string *pattern, uint32_t options);
-void delete_cst_uregex(cst_uregex * uregex);
-int cst_uregex_match(cst_uregex * uregex, const cst_string *str);
+void delete_cst_uregex(cst_uregex *uregex);
+int cst_uregex_match(cst_uregex *uregex, const cst_string *str);
 
 #endif

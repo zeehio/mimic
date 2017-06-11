@@ -14,7 +14,8 @@ fi
 
 WHAT_TO_RUN="$1"
 
-MIMIC_TOP_SRCDIR=`dirname \`readlink -f "$0"\``
+export MIMIC_TOP_SRCDIR=`dirname \`readlink -f "$0"\``
+echo "${MIMIC_TOP_SRCDIR}"
 
 export MANIFEST_TOOL=:
 

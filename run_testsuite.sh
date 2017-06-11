@@ -14,8 +14,35 @@ fi
 
 WHAT_TO_RUN="$1"
 
-export MIMIC_TOP_SRCDIR=`dirname \`readlink -f "$0"\``
-echo "${MIMIC_TOP_SRCDIR}"
+
+# emulates readlink -f, not available on osx
+readlink2()
+{
+MYWD=`pwd`
+TARGET_FILE=$1
+
+cd `dirname $TARGET_FILE`
+TARGET_FILE=`basename $TARGET_FILE`
+
+# Iterate down a (possible) chain of symlinks
+while [ -L "$TARGET_FILE" ]
+do
+    TARGET_FILE=`readlink $TARGET_FILE`
+    cd `dirname $TARGET_FILE`
+    TARGET_FILE=`basename $TARGET_FILE`
+done
+
+# Compute the canonicalized name by finding the physical path 
+# for the directory we're in and appending the target file.
+PHYS_DIR=`pwd -P`
+RESULT=$PHYS_DIR/$TARGET_FILE
+# restore working directory
+cd "$MYWD"
+echo $RESULT
+}
+
+
+export MIMIC_TOP_SRCDIR=`dirname \`readlink2 "$0"\``
 
 export MANIFEST_TOOL=:
 

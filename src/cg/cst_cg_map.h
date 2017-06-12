@@ -58,7 +58,9 @@ char **cst_read_db_types(cst_file fd);
 cst_cart_node *cst_read_tree_nodes(cst_file fd);
 char **cst_read_tree_feats(cst_file fd);
 cst_cart *cst_read_tree(cst_file fd);
+void cst_read_simple_tree(cst_file fd, const cst_cart **tree, cst_simple_cart **simple_tree);
 cst_cart **cst_read_tree_array(cst_file fd);
+void cst_read_simple_tree_array(cst_file fd, cst_cart ***trees, cst_simple_cart ***helper_trees);
 
 void *cst_read_array(cst_file fd);
 void **cst_read_2d_array(cst_file fd);

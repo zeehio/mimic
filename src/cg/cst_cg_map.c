@@ -40,6 +40,7 @@
 #include <stdlib.h>
 #include "cst_string.h"
 #include "cst_cg_map.h"
+#include "cst_val.h"
 
 const char *const cg_voice_header_string = "CMU_FLITE_CG_VOXDATA-v2.0";
 
@@ -89,20 +90,28 @@ cst_cg_db *cst_cg_load_db(cst_voice *vox, cst_file fd)
     db->sample_rate = integer_vals[1];
     db->f0_mean = float_vals[0];
     db->f0_stddev = float_vals[1];
-    db->f0_trees = (const cst_cart **) cst_read_tree_array(fd);
+    cst_read_simple_tree_array(fd, (cst_cart ***) &(db->f0_trees), &(db->cart_helper.f0_trees));
 
     db->num_param_models =
         get_param_int(vox->features, "num_param_models", 3);
     db->param_trees = cst_alloc(const cst_cart * const *,
                                  db->num_param_models);
+    db->cart_helper.param_trees = cst_alloc(cst_simple_cart **, db->num_param_models);
     for (i = 0; i < db->num_param_models; i++)
-        db->param_trees[i] = (const cst_cart **) cst_read_tree_array(fd);
+        cst_read_simple_tree_array(fd, (cst_cart ***)&(db->param_trees[i]), &(db->cart_helper.param_trees[i]));
 
     db->spamf0 = cst_read_int32(fd);
     if (db->spamf0)
     {
-        db->spamf0_accent_tree = cst_read_tree(fd);
-        db->spamf0_phrase_tree = cst_read_tree(fd);
+		
+        cst_read_simple_tree(
+            fd,
+            &(db->spamf0_accent_tree),
+            &(db->cart_helper.spamf0_accent_tree));
+        cst_read_simple_tree(
+            fd,
+            &(db->spamf0_phrase_tree),
+            &(db->cart_helper.spamf0_phrase_tree));
     }
 
     db->num_channels = cst_alloc(int32_t, db->num_param_models);
@@ -144,11 +153,12 @@ cst_cg_db *cst_cg_load_db(cst_voice *vox, cst_file fd)
     db->num_dur_models = get_param_int(vox->features, "num_dur_models", 1);
     db->dur_stats = cst_alloc(const dur_stat **, db->num_dur_models);
     db->dur_cart = cst_alloc(const cst_cart *, db->num_dur_models);
+    db->cart_helper.dur_cart = cst_alloc(cst_simple_cart *, db->num_dur_models);
 
     for (i = 0; i < db->num_dur_models; i++)
     {
         db->dur_stats[i] = (const dur_stat **) cst_read_dur_stats(fd);
-        db->dur_cart[i] = (const cst_cart *) cst_read_tree(fd);
+        cst_read_simple_tree(fd, &(db->dur_cart[i]), &(db->cart_helper.dur_cart[i]));
     }
 
     db->phone_states = (const char *const *const *) cst_read_phone_states(fd);
@@ -169,9 +179,8 @@ cst_cg_db *cst_cg_load_db(cst_voice *vox, cst_file fd)
 
     db->spamf0 = cst_read_int32(fd);      /* yes, twice, its above too */
     db->gain = cst_read_float(fd);
-
+    
     return db;
-
 }
 
 void cst_cg_free_db(cst_file fd, cst_cg_db *db)
@@ -233,15 +242,67 @@ cst_cart_node *cst_read_tree_nodes(cst_file fd)
             cst_free(str);
         }
         else if (vtype == CST_VAL_TYPE_INT)
+        {
             nodes[i].val = int_val(cst_read_int32(fd));
+		}
         else if (vtype == CST_VAL_TYPE_FLOAT)
+        {
             nodes[i].val = float_val(cst_read_float(fd));
+		}
         else
+        {
             nodes[i].val = int_val(cst_read_int32(fd));
+		}
     }
     nodes[i].val = NULL;
 
     return nodes;
+}
+
+void cst_read_simple_tree_nodes(cst_file fd, cst_simple_cart *simple_cart)
+{
+    cst_cart_node *nodes;
+    int temp;
+    int i, num_nodes;
+    short vtype;
+    char *str;
+    uint16_t buff[3];
+    num_nodes = cst_read_int32(fd);
+    nodes = cst_alloc(cst_cart_node, num_nodes + 1);
+    simple_cart->all_vals = cst_alloc(cst_val, num_nodes +1);
+
+    for (i = 0; i < num_nodes; i++)
+    {
+        cst_fread(fd, buff, sizeof(uint16_t) * 3, 1);
+        nodes[i].feat = buff[0] & 0xff;
+        nodes[i].op = buff[0] >> 8;
+        nodes[i].no_node = buff[1];
+        vtype = buff[2];
+        if (vtype == CST_VAL_TYPE_STRING)
+        {
+            str = cst_read_padded(fd, &temp);
+            set_val_string(&(simple_cart->all_vals[i]), str);
+            nodes[i].val = &(simple_cart->all_vals[i]);
+        }
+        else if (vtype == CST_VAL_TYPE_INT)
+        {
+            set_val_int(&(simple_cart->all_vals[i]), cst_read_int32(fd));
+            nodes[i].val = &(simple_cart->all_vals[i]);
+		}
+        else if (vtype == CST_VAL_TYPE_FLOAT)
+        {
+            set_val_float(&(simple_cart->all_vals[i]), cst_read_float(fd));
+            nodes[i].val = &(simple_cart->all_vals[i]);
+		}
+        else
+        {
+            set_val_int(&(simple_cart->all_vals[i]), cst_read_int32(fd));
+            nodes[i].val = &(simple_cart->all_vals[i]);
+		}
+    }
+    nodes[i].val = NULL;
+    simple_cart->cart->rule_table = nodes;
+    return;
 }
 
 char **cst_read_tree_feats(cst_file fd)
@@ -269,8 +330,16 @@ cst_cart *cst_read_tree(cst_file fd)
     tree = cst_alloc(cst_cart, 1);
     tree->rule_table = cst_read_tree_nodes(fd);
     tree->feat_table = (const char *const *) cst_read_tree_feats(fd);
-
     return tree;
+}
+
+void cst_read_simple_tree(cst_file fd, const cst_cart **tree, cst_simple_cart **simple_tree)
+{
+	*simple_tree = new_simple_cart();
+	cst_read_simple_tree_nodes(fd, *simple_tree);
+    (*simple_tree)->cart->feat_table = (const char *const *) cst_read_tree_feats(fd);
+    *tree = (*simple_tree)->cart;
+	return;
 }
 
 cst_cart **cst_read_tree_array(cst_file fd)
@@ -292,6 +361,31 @@ cst_cart **cst_read_tree_array(cst_file fd)
 
     return trees;
 }
+
+void cst_read_simple_tree_array(cst_file fd, cst_cart ***trees, cst_simple_cart ***helper_trees)
+{
+    int numtrees;
+    int i;
+
+    numtrees = cst_read_int32(fd);
+
+    if (numtrees > 0)
+    {
+        *trees = cst_alloc(cst_cart *, numtrees + 1);
+        *helper_trees = cst_alloc(cst_simple_cart *, numtrees + 1);
+        for (i = 0; i < numtrees; i++)
+			cst_read_simple_tree(fd, (const cst_cart **) &((*trees)[i]), &((*helper_trees)[i]));
+        (*trees)[i] = NULL;
+        (*helper_trees)[i] = NULL;
+    }
+    else 
+    {
+		*trees = NULL;
+		*helper_trees = NULL;
+	}
+    return;
+}
+
 
 void *cst_read_array(cst_file fd)
 {

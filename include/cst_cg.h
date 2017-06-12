@@ -53,6 +53,27 @@
 #include "cst_audio.h"
 #include "cst_synth.h"          /* for dur_stat */
 
+/* simpler faster to serialize cart tree */
+/* cart tree stored in a different way, supporting int, float and string nodes */
+typedef struct cst_simple_cart_struct {
+	cst_cart *cart;
+    cst_val *all_vals;
+    char **all_strings;
+} cst_simple_cart;
+
+cst_simple_cart *new_simple_cart();
+void delete_simple_cart(cst_simple_cart *simple_cart);
+
+/* end of simple_cart */
+
+typedef struct cst_cg_db_fasterload_struct {
+	cst_simple_cart **f0_trees;
+	cst_simple_cart ***param_trees;
+	cst_simple_cart *spamf0_accent_tree;
+	cst_simple_cart *spamf0_phrase_tree;
+	cst_simple_cart **dur_cart;
+} cst_cg_db_fasterload;
+
 typedef struct cst_cg_db_struct {
     /* Please do not change this structure, but if you do only add things
        to the end of the struct.  If you change please modify dump/load  
@@ -117,7 +138,8 @@ typedef struct cst_cg_db_struct {
     float gain;
 
     int32_t freeable;               /* doesn't get dumped, but 1 when this a freeable struct */
-
+    
+    cst_cg_db_fasterload cart_helper;
 } cst_cg_db;
 
 /* Access model parameters, unpacking them as required */

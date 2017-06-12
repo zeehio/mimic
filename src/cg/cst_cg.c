@@ -61,6 +61,56 @@ static cst_utterance *cg_make_params(cst_utterance *utt);
 static cst_utterance *cg_predict_params(cst_utterance *utt);
 static cst_utterance *cg_resynth(cst_utterance *utt);
 
+
+cst_simple_cart *new_simple_cart() {
+	cst_simple_cart *out = cst_alloc(cst_simple_cart, 1);
+	out->cart = cst_alloc(cst_cart, 1);
+	out->cart->feat_table = NULL;
+	out->cart->rule_table = NULL;
+	out->all_vals = NULL;
+	out->all_strings = NULL;
+	return out;
+}
+
+void delete_simple_cart(cst_simple_cart *simple_cart) {
+	/* have to compensate for previous over-zealous consting */
+    /* It is assume that given carts, can be freed (i.e. they aren't in */
+    /* in the data segment */
+    int i;
+
+    if (simple_cart == NULL)
+        return;
+    
+    if (simple_cart->all_vals == NULL)
+    {
+        delete_cart(simple_cart->cart);
+        cst_free((void *) simple_cart);
+        return;
+	}
+
+	if (simple_cart->all_strings != NULL)
+	{
+		for (i = 0; simple_cart->all_strings[i] != NULL; ++i)
+			cst_free(simple_cart->all_strings[i]);
+		cst_free(simple_cart->all_strings);
+	}
+
+	cst_free(simple_cart->all_vals);
+
+	cst_free((void *) simple_cart->cart->rule_table);
+
+	/* delete feat_table conventionally */
+    for (i = 0; simple_cart->cart->feat_table[i]; i++)
+        cst_free((void *) simple_cart->cart->feat_table[i]);
+    cst_free((void *) simple_cart->cart->feat_table);
+    /* delete cart pointer */
+    cst_free((void *) simple_cart->cart);
+    cst_free((void *) simple_cart);
+    return;
+}
+
+
+
 void delete_cg_db(cst_cg_db *db)
 {
     int i, j;
@@ -77,21 +127,24 @@ void delete_cg_db(cst_cg_db *db)
     cst_free((void *) db->types);
 
     for (i = 0; db->f0_trees && db->f0_trees[i]; i++)
-        delete_cart((cst_cart *) (void *) db->f0_trees[i]);
+		delete_simple_cart(db->cart_helper.f0_trees[i]);
+    cst_free((void *) db->cart_helper.f0_trees);
     cst_free((void *) db->f0_trees);
 
     for (j = 0; j < db->num_param_models; j++)
     {
         for (i = 0; db->param_trees[j] && db->param_trees[j][i]; i++)
-            delete_cart((cst_cart *) (void *) db->param_trees[j][i]);
+            delete_simple_cart((cst_simple_cart *) db->cart_helper.param_trees[j][i]);
         cst_free((void *) db->param_trees[j]);
+        cst_free(db->cart_helper.param_trees[j]);
     }
     cst_free((void *) db->param_trees);
+    cst_free(db->cart_helper.param_trees);
 
     if (db->spamf0)
     {
-        delete_cart((cst_cart *) (void *) db->spamf0_accent_tree);
-        delete_cart((cst_cart *) (void *) db->spamf0_phrase_tree);
+        delete_simple_cart(db->cart_helper.spamf0_accent_tree);
+        delete_simple_cart(db->cart_helper.spamf0_phrase_tree);
         for (i = 0; i < db->num_frames_spamf0_accent; i++)
             cst_free((void *) db->spamf0_accent_vectors[i]);
         cst_free((void *) db->spamf0_accent_vectors);
@@ -118,10 +171,11 @@ void delete_cg_db(cst_cg_db *db)
             cst_free((void *) db->dur_stats[j][i]);
         }
         cst_free((void *) db->dur_stats[j]);
-        delete_cart((void *) db->dur_cart[j]);
+        delete_simple_cart(db->cart_helper.dur_cart[j]);
     }
     cst_free((void *) db->dur_stats);
     cst_free((void *) db->dur_cart);
+    cst_free(db->cart_helper.dur_cart);
 
     for (i = 0; db->phone_states && db->phone_states[i]; i++)
     {

@@ -73,6 +73,25 @@ cst_val *string_val(const char *s)
     return v;
 }
 
+
+void set_val_int(cst_val *v, int i) {
+    CST_VAL_TYPE(v) = CST_VAL_TYPE_INT;
+    CST_VAL_INT(v) = i;
+    return;
+}
+
+void set_val_float(cst_val *v, float f) {
+    CST_VAL_TYPE(v) = CST_VAL_TYPE_FLOAT;
+    CST_VAL_FLOAT(v) = f;
+    return;
+}
+
+void set_val_string(cst_val *v, char *s) {
+    CST_VAL_TYPE(v) = CST_VAL_TYPE_STRING;
+    CST_VAL_STRING_LVAL(v) = s;
+    return;
+}
+
 cst_val *cons_val(const cst_val *a, const cst_val *b)
 {
     cst_val *v = new_val();

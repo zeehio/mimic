@@ -105,6 +105,11 @@ cst_val *string_val(const char *s);
 cst_val *val_new_typed(int type, void *vv);
 cst_val *cons_val(const cst_val *a, const cst_val *b);
 
+/* Set int, float, string, use them on new cst_vals */
+void set_val_int(cst_val *v, int i);
+void set_val_float(cst_val *v, float f);
+void set_val_string(cst_val *v, char *s); /* s will be owned (and later cst_free'd) by v */
+
 /* Derefence and delete val if no other references */
 void delete_val(cst_val *val);
 void delete_val_list(cst_val *val);

@@ -1,5 +1,6 @@
 #!/bin/sh
 
+#### Help message ####
 if [ "$#" -eq 0 ]; then
   echo "./run_testsuite.sh requires a task/build target to be done"
   echo "  - ./run_testsuite.sh osx (OSX install dependencies, build and test)"
@@ -12,10 +13,7 @@ if [ "$#" -eq 0 ]; then
   echo "  - ./run_testsuite.sh winbuild_shared (crosscompiling, with shared libraries)"
 fi 
 
-WHAT_TO_RUN="$1"
-
-
-# emulates readlink -f, not available on osx
+#### This function emulates readlink -f, not available on osx ####
 readlink2()
 {
 MYWD=`pwd`
@@ -41,15 +39,27 @@ cd "$MYWD"
 echo $RESULT
 }
 
-
-export MIMIC_TOP_SRCDIR=`dirname \`readlink2 "$0"\``
-
+# Cross-compilation in Windows looks for a "Manifest tool". autotools
+# mistakenly finds `/bin/mt` and assumes it is the manifest tool, even though
+# it is an unrelated program. This export makes sure that autotools does not
+# find the wrong manifest tool.
 export MANIFEST_TOOL=:
 
+
+# The task we want to run
+WHAT_TO_RUN="$1"
+
+# Set up an environment variable to increase compilation speed (and RAM usage) 
 if [ "x${NCORES}" = "x" ]; then
     NCORES=1
 fi
 
+# The directory where the mimic source code is.
+export MIMIC_TOP_SRCDIR=`dirname \`readlink2 "$0"\``
+
+
+# The following functions are used later on. They assume the following variables
+# will be set:
 # Assumes MIMIC_TOP_SRCDIR points to mimic sources directory (where configure is)
 # Assumes MIMIC_INSTALL_DIR points to where mimic will be installed
 # Assumes WORKDIR points to a directory where build items can be placed
@@ -65,10 +75,6 @@ crosscompile_dependencies()
     # in the future the ${HOST_TRIPLET}-pkg-config can be used with a simple
     # PKG_CONFIG_PATH="${MIMIC_INSTALL_DIR}/lib/pkgconfig/"
     (cd "${WORKDIR}" && \
-      CC=${HOST_TRIPLET}-gcc \
-      LD=${HOST_TRIPLET}-ld \
-      RANLIB=${HOST_TRIPLET}-ranlib \
-      AR=${HOST_TRIPLET}-ar \
       PKG_CONFIG_LIBDIR="" \
       PKG_CONFIG_PATH="${MIMIC_INSTALL_DIR}/lib/pkgconfig/:/usr/lib/${HOST_TRIPLET}/pkgconfig:/usr/${HOST_TRIPLET}/lib/pkgconfig" \
       PKG_CONFIG=`which pkg-config` \
@@ -98,13 +104,8 @@ crosscompile_portaudio()
     ../portaudio/configure --build="${BUILD_TRIPLET}" \
                            --host="${HOST_TRIPLET}" \
                            --prefix="${MIMIC_INSTALL_DIR}" \
-                           CC=${HOST_TRIPLET}-gcc \
-                           CXX=${HOST_TRIPLET}-g++ \
-                           LD=${HOST_TRIPLET}-ld \
-                           RANLIB=${HOST_TRIPLET}-ranlib \
-                           AR=${HOST_TRIPLET}-ar \
                            "$@" && \
-    make -j ${NCORES} &&  make install) || exit 1
+    make -j ${NCORES} && make install) || exit 1
 }
 
 crosscompile_mimic() 
@@ -120,13 +121,10 @@ crosscompile_mimic()
     # pkg-config in Debian stretch and in Ubuntu xenial have this bug fixed so
     # in the future the ${HOST_TRIPLET}-pkg-config can be used with a simple
     # PKG_CONFIG_PATH="${MIMIC_INSTALL_DIR}/lib/pkgconfig/"
-    ${MIMIC_TOP_SRCDIR}/configure --build="${BUILD_TRIPLET}" \
+    ${MIMIC_TOP_SRCDIR}/configure \
+                 --build="${BUILD_TRIPLET}" \
                  --host="${HOST_TRIPLET}" \
                  --prefix="${MIMIC_INSTALL_DIR}" \
-                 CC=${HOST_TRIPLET}-gcc \
-                 LD=${HOST_TRIPLET}-ld \
-                 RANLIB=${HOST_TRIPLET}-ranlib \
-                 AR=${HOST_TRIPLET}-ar \
                  PKG_CONFIG_PATH="${MIMIC_INSTALL_DIR}/lib/pkgconfig/:/usr/lib/${HOST_TRIPLET}/pkgconfig:/usr/${HOST_TRIPLET}/lib/pkgconfig" \
                  PKG_CONFIG_LIBDIR="" \
                  PKG_CONFIG=`which pkg-config` \
@@ -137,30 +135,31 @@ crosscompile_mimic()
 put_dll_in_bindir()
 {
     # if mingw32, then copy a DLL: (not needed with mingw-w64)
-    if [ "x${HOST_TRIPLET}" = "xi586-mingw32msvc" ]; then
-      # This one is needed from the mingw32-runtime package
-      if [ -f /usr/share/doc/mingw32-runtime/mingwm10.dll.gz ]; then
-          cat /usr/share/doc/mingw32-runtime/mingwm10.dll.gz | gunzip > "${MIMIC_INSTALL_DIR}/bin/mingwm10.dll" || exit 1
-      else
-          # it seems travis does not find it, so we get it directly from the package
-          (  cd "${WORKDIR}" && \
-       apt-get download mingw32-runtime && \
-              ar p mingw32-runtime*.deb data.tar.gz | tar zx && \
-             cat usr/share/doc/mingw32-runtime/mingwm10.dll.gz | gunzip > "${MIMIC_INSTALL_DIR}/bin/mingwm10.dll" ) || exit 1
-      fi
-    fi
-    # ICU and portaudio libraries are installed into lib. wine can't find them.
+    #if [ "x${HOST_TRIPLET}" = "xi586-mingw32msvc" ]; then
+    #  # This one is needed from the mingw32-runtime package
+    #  if [ -f /usr/share/doc/mingw32-runtime/mingwm10.dll.gz ]; then
+    #      cat /usr/share/doc/mingw32-runtime/mingwm10.dll.gz | gunzip > "${MIMIC_INSTALL_DIR}/bin/mingwm10.dll" || exit 1
+    #  else
+    #      # it seems travis does not find it, so we get it directly from the package
+    #      (  cd "${WORKDIR}" && \
+    #   apt-get download mingw32-runtime && \
+    #          ar p mingw32-runtime*.deb data.tar.gz | tar zx && \
+    #         cat usr/share/doc/mingw32-runtime/mingwm10.dll.gz | gunzip > "${MIMIC_INSTALL_DIR}/bin/mingwm10.dll" ) || exit 1
+    #  fi
+    #fi
+    # Portaudio libraries are installed into lib. wine can't find them.
     # Copy all libs to ${MIMIC_INSTALL_DIR}/bin
     for file in `ls "${MIMIC_INSTALL_DIR}/lib/"*.dll`; do cp "$file" "${MIMIC_INSTALL_DIR}/bin/"; done
 }
 
 fix_portaudio_pc_file()
 {
+ echo "do nothing here"
     # this is a hack not needed with mingw-w64
-    if [ "x${HOST_TRIPLET}" = "xi586-mingw32msvc" ]; then
-      # uuid is not a dll in mingw. I just remove it and hope mimic still works.
+    #if [ "x${HOST_TRIPLET}" = "xi586-mingw32msvc" ]; then
+    #  # uuid is not a dll in mingw. I just remove it and hope mimic still works.
       sed -i -e 's:-luuid::g' "${MIMIC_INSTALL_DIR}/lib/pkgconfig/portaudio-2.0.pc"
-    fi
+    #fi
 }
 
 run_mimic_autogen()
@@ -191,14 +190,15 @@ test_windows_build()
 set_windows_triplet()
 {
     export BUILD_TRIPLET=`sh ./config/config.guess`
-    if [ `which i586-mingw32msvc-gcc` ]; then
-        export HOST_TRIPLET="i586-mingw32msvc"
-    elif [ `which i686-w64-mingw32-gcc` ]; then
-        export HOST_TRIPLET="i686-w64-mingw32"
-    else
-        echo "No windows cross-compiler found"
-        exit 1
-    fi
+    export HOST_TRIPLET="i686-w64-mingw32"
+    #if [ `which i586-mingw32msvc-gcc` ]; then
+    #    export HOST_TRIPLET="i586-mingw32msvc"
+    #elif [ `which i686-w64-mingw32-gcc` ]; then
+    #    export HOST_TRIPLET="i686-w64-mingw32"
+    #else
+    #    echo "No windows cross-compiler found"
+    #    exit 1
+    #fi
 }
 
 compile_dependencies()

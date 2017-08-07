@@ -79,7 +79,7 @@ static cst_val *es_tokentowords_one(cst_item *token, const char *name)
         list_of_words = cons_val(string_val("diecisiete"), NULL);       
     } else
     {
-        list_of_words = cons_val(string_val(cst_tolower_l(name, "es_ES")), NULL);
+        list_of_words = cons_val(string_val(cst_tolower_utf8(name)), NULL);
     }
     return list_of_words;
 }

@@ -112,3 +112,19 @@ void unregister_cmu_us_slt_hts(cst_voice *vox)
     delete_voice(vox);
     cmu_us_slt_hts = NULL;
 }
+
+void voice_cmu_us_slt_hts_plugin_init()
+{
+   mimic_voice_list = cons_val(voice_val(register_cmu_us_slt_hts(NULL)), mimic_voice_list);
+}
+
+void voice_cmu_us_slt_hts_plugin_exit()
+{
+}
+
+#ifdef MIMIC_ENABLE_PLUGINS
+#include "cst_plugins.h"
+
+mimic_plugin_t mimic_plugin = { "voice_cmu_us_slt_hts", 0, &voice_cmu_us_slt_hts_plugin_init, &voice_cmu_us_slt_hts_plugin_exit};
+#endif
+

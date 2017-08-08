@@ -38,6 +38,7 @@
 /*                                                                       */
 /*************************************************************************/
 
+#include "config.h"
 #include "mimic.h"
 #include "cst_diphone.h"
 #include "usenglish.h"
@@ -114,4 +115,19 @@ static cst_utterance *cmu_us_kal_postlex(cst_utterance *u)
 
     return u;
 }
+
+void voice_cmu_us_kal_plugin_init()
+{
+   mimic_voice_list = cons_val(voice_val(register_cmu_us_kal(NULL)), mimic_voice_list);
+}
+
+void voice_cmu_us_kal_plugin_exit()
+{
+}
+
+#ifdef MIMIC_ENABLE_PLUGINS
+#include "cst_plugins.h"
+
+mimic_plugin_t mimic_plugin = { "voice_cmu_us_kal", 0, &voice_cmu_us_kal_plugin_init, &voice_cmu_us_kal_plugin_exit};
+#endif
 

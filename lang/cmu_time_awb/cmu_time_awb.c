@@ -38,6 +38,8 @@
 /*                                                                       */
 /*************************************************************************/
 
+#include "config.h"
+
 #include <string.h>
 #include "mimic.h"
 #include "cst_clunits.h"
@@ -115,3 +117,19 @@ static char *cmu_time_awb_unit_name(cst_item *s)
 {
 	return clunits_ldom_phone_word(s);
 }
+
+void voice_cmu_time_awb_plugin_init()
+{
+   mimic_voice_list = cons_val(voice_val(register_cmu_time_awb(NULL)), mimic_voice_list);
+}
+
+void voice_cmu_time_awb_plugin_exit()
+{
+}
+
+#ifdef MIMIC_ENABLE_PLUGINS
+#include "cst_plugins.h"
+
+mimic_plugin_t mimic_plugin = { "voice_cmu_time_awb", 0, &voice_cmu_time_awb_plugin_init, &voice_cmu_time_awb_plugin_exit};
+#endif
+

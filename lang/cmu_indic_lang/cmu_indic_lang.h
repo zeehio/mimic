@@ -33,8 +33,8 @@
 /*  indic lang public functions                                       */
 /*************************************************************************/
 
-#ifndef _cmu_indic_lang_h_
-#define _cmu_indic_lang_h_
+#ifndef cmu_indic_lang_h_
+#define cmu_indic_lang_h_
 
 #ifdef __cplusplus
 extern "C" {
@@ -46,12 +46,17 @@ extern "C" {
 #include "cst_phoneset.h"
 #include "cst_lexicon.h"
 #include "cst_synth.h"
+#include "cst_regex.h"
 
 void cmu_indic_lang_init(cst_voice *v);
 extern const cst_phoneset cmu_indic_phoneset;
 extern const cst_cart cmu_indic_phrasing_cart; 
 
 const cst_regex * const cst_rx_not_indic;
+
+void indic_plugin_init();
+void indic_plugin_exit();
+
 
 #ifdef __cplusplus
 } /* extern "C" */

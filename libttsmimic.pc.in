@@ -3,8 +3,8 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 
-Name: mimic
-Description: text to speech synthesis
+Name: libttsmimic
+Description: Full mimic library, with all the embedded plugins
 URL: http://mimic.mycroft.ai/
 Version: @VERSION@
 Requires: @PKGCONFIG_MIMIC_DEPS@

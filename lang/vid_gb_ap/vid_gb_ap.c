@@ -94,3 +94,19 @@ void unregister_vid_gb_ap(cst_voice *vox)
     vid_gb_ap_cg = NULL;
 }
 
+
+void voice_vid_gb_ap_plugin_init()
+{
+   mimic_voice_list = cons_val(voice_val(register_vid_gb_ap(NULL)), mimic_voice_list);
+}
+
+void voice_vid_gb_ap_plugin_exit()
+{
+}
+
+#ifdef MIMIC_ENABLE_PLUGINS
+#include "cst_plugins.h"
+
+mimic_plugin_t mimic_plugin = { "voice_vid_gb_ap", 0, &voice_vid_gb_ap_plugin_init, &voice_vid_gb_ap_plugin_exit};
+#endif
+

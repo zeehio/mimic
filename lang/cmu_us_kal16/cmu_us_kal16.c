@@ -96,3 +96,18 @@ void unregister_cmu_us_kal16(cst_voice *vox)
     cmu_us_kal16_diphone = NULL;
 }
 
+void voice_cmu_us_kal16_plugin_init()
+{
+   mimic_voice_list = cons_val(voice_val(register_cmu_us_kal16(NULL)), mimic_voice_list);
+}
+
+void voice_cmu_us_kal16_plugin_exit()
+{
+}
+
+#ifdef MIMIC_ENABLE_PLUGINS
+#include "cst_plugins.h"
+
+mimic_plugin_t mimic_plugin = { "voice_cmu_us_kal16", 0, &voice_cmu_us_kal16_plugin_init, &voice_cmu_us_kal16_plugin_exit};
+#endif
+

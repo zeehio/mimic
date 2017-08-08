@@ -51,6 +51,10 @@ void cmu_grapheme_lang_init(cst_voice *v);
 extern const cst_phoneset cmu_grapheme_phoneset;
 extern const cst_cart cmu_grapheme_phrasing_cart;
 
+void grapheme_plugin_init();
+void grapheme_plugin_exit();
+
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif /* __cplusplus */

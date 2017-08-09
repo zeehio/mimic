@@ -1,0 +1,12 @@
+option('openmp', type : 'boolean', value : true,
+       description: 'Enable or disable openmp support (only used in a test)')
+option('enable-hts', type : 'boolean', value : true,
+       description : 'Set to false to disable hts engine (and hts voices)')
+option('audio', type : 'combo',
+       choices : ['auto', 'alsa', 'portaudio', 'none', 'sun', 'oss',
+                  'pulseaudio', 'wince'], value : 'auto')
+option('gpl', type : 'boolean', value : true,
+       description: 'Enable or disable GPL licensed mimic parts')
+option('plugins', type : 'boolean', value : false,
+       description: 'Enable or disable shared library plugin system')
+
